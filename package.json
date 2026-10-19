@@ -1,0 +1,16 @@
+{
+  "name": "sistem-pemantauan-kerja",
+  "version": "1.0.0",
+  "description": "Sistem Pemantauan Kerja Berhierarki (Ketua Bahagian, Pegawai, YDP)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.0"
+  }
+}
