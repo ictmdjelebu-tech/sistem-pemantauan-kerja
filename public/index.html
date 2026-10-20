@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistem Pemantauan Kerja - Majlis Daerah Jelebu</title>
+  
+  <!-- PWA & Mobile Web App Meta -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#7f1d1d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MDJ Pantau">
+  <link rel="apple-touch-icon" href="/logo-mdj.png">
+  <link rel="icon" type="image/png" href="/logo-mdj.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for YDP Executive Dashboard -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fef2f2',
+              100: '#fee2e2',
+              500: '#ef4444',
+              700: '#b91c1c',
+              800: '#991b1b',
+              900: '#7f1d1d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+
+  <!-- ============================================================== -->
+  <!-- SCREEN 0: MODERN LOGIN PAGE UI (MAJLIS DAERAH JELEBU)          -->
+  <!-- ============================================================== -->
+  <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- MDJ Header -->
+      <div class="bg-gradient-to-br from-red-950 via-red-900 to-amber-950 text-white p-6 sm:p-7 text-center relative overflow-hidden">
+        <div class="absolute -right-12 -top-12 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -left-12 -bottom-12 w-40 h-40 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="w-20 h-20 mx-auto mb-2 bg-white rounded-2xl p-2 shadow-xl flex items-center justify-center border-2 border-amber-400">
+          <img src="/logo-mdj.png" alt="Majlis Daerah Jelebu" class="max-w-full max-h-full object-contain">
+        </div>
+
+        <span class="text-[10px] font-extrabold uppercase tracking-widest text-amber-300">PORTAL RASMI MDJ</span>
+        <h2 class="text-xl font-extrabold text-white mt-0.5">MAJLIS DAERAH JELEBU</h2>
+        <p class="text-xs text-red-100 font-medium mt-0.5">Sistem Pemantauan Kerja Bersepadu</p>
+      </div>
+
+      <!-- STEP 1: Pilih Peranan Sistem -->
+      <div id="loginStepRole" class="p-6 sm:p-7 space-y-4">
+        <div class="text-center">
+          <h3 class="text-sm font-extrabold text-slate-800">Sila Pilih Peranan Anda:</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Klik pada mana-mana peranan di bawah untuk meneruskan log masuk</p>
+        </div>
+
+        <div class="space-y-2.5">
+          <!-- Super Admin -->
+          <button type="button" onclick="selectLoginRole('superadmin')" class="w-full p-3.5 rounded-2xl border-2 border-purple-100 hover:border-purple-500 bg-purple-50/60 hover:bg-purple-50 text-purple-950 font-bold transition flex items-center justify-between group shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-600/30 group-hover:scale-105 transition">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+              </span>
+              <div class="text-left">
+                <div class="text-xs sm:text-sm font-extrabold text-purple-950">Super Admin MDJ</div>
+                <div class="text-[11px] font-normal text-purple-700">Pentadbiran Jabatan, Kakitangan &amp; Sistem</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-purple-400 group-hover:text-purple-700 group-hover:translate-x-0.5 transition"></i>
+          </button>
+
+          <!-- YDP MDJ -->
+          <button type="button" onclick="selectLoginRole('ydp')" class="w-full p-3.5 rounded-2xl border-2 border-amber-100 hover:border-amber-500 bg-amber-50/60 hover:bg-amber-50 text-amber-950 font-bold transition flex items-center justify-between group shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-amber-500 text-slate-900 flex items-center justify-center shadow-md shadow-amber-500/30 group-hover:scale-105 transition">
+                <i data-lucide="award" class="w-5 h-5"></i>
+              </span>
+              <div class="text-left">
+                <div class="text-xs sm:text-sm font-extrabold text-amber-950">Yang Dipertua (YDP) MDJ</div>
+                <div class="text-[11px] font-normal text-amber-700">Pemantauan Prestasi &amp; Papan Pemuka Eksekutif</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-amber-400 group-hover:text-amber-700 group-hover:translate-x-0.5 transition"></i>
+          </button>
+
+          <!-- Setiausaha MDJ -->
+          <button type="button" onclick="selectLoginRole('setiausaha')" class="w-full p-3.5 rounded-2xl border-2 border-teal-100 hover:border-teal-500 bg-teal-50/60 hover:bg-teal-50 text-teal-950 font-bold transition flex items-center justify-between group shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/30 group-hover:scale-105 transition">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+              </span>
+              <div class="text-left">
+                <div class="text-xs sm:text-sm font-extrabold text-teal-950">Setiausaha (SU) MDJ</div>
+                <div class="text-[11px] font-normal text-teal-700">Pengauditan Kerja &amp; Pemantauan Eksekutif</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-teal-400 group-hover:text-teal-700 group-hover:translate-x-0.5 transition"></i>
+          </button>
+
+          <!-- Ketua Jabatan -->
+          <button type="button" onclick="selectLoginRole('ketua_bahagian')" class="w-full p-3.5 rounded-2xl border-2 border-sky-100 hover:border-sky-500 bg-sky-50/60 hover:bg-sky-50 text-sky-950 font-bold transition flex items-center justify-between group shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center shadow-md shadow-sky-600/30 group-hover:scale-105 transition">
+                <i data-lucide="briefcase" class="w-5 h-5"></i>
+              </span>
+              <div class="text-left">
+                <div class="text-xs sm:text-sm font-extrabold text-sky-950">Ketua Jabatan / Bahagian</div>
+                <div class="text-[11px] font-normal text-sky-700">Pemberian Tugasan, Semakan Bukti &amp; Pengesahan</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-sky-400 group-hover:text-sky-700 group-hover:translate-x-0.5 transition"></i>
+          </button>
+
+          <!-- Pegawai Bertugas -->
+          <button type="button" onclick="selectLoginRole('pegawai')" class="w-full p-3.5 rounded-2xl border-2 border-emerald-100 hover:border-emerald-500 bg-emerald-50/60 hover:bg-emerald-50 text-emerald-950 font-bold transition flex items-center justify-between group shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 group-hover:scale-105 transition">
+                <i data-lucide="user-check" class="w-5 h-5"></i>
+              </span>
+              <div class="text-left">
+                <div class="text-xs sm:text-sm font-extrabold text-emerald-950">Pegawai Bertugas (Lapangan)</div>
+                <div class="text-[11px] font-normal text-emerald-700">Kotak Masa SLA, Muat Naik Bukti &amp; Laporan Tapak</div>
+              </div>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-emerald-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Pengesahan & Kata Laluan (Default 123456) -->
+      <div id="loginStepPassword" class="p-6 sm:p-7 space-y-4 hidden">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <button type="button" onclick="backToRoleSelection()" class="text-xs font-bold text-slate-500 hover:text-red-700 flex items-center gap-1 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>&laquo; Tukar Peranan</span>
+          </button>
+          <span id="loginSelectedRoleBadge" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800">
+            Peranan
+          </span>
+        </div>
+
+        <!-- Single persona card (Superadmin / YDP / SU) -->
+        <div id="loginSingleUserCard" class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-3">
+          <div id="loginSingleUserAvatar" class="w-11 h-11 rounded-xl bg-red-800 text-white font-extrabold flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+            MDJ
+          </div>
+          <div class="overflow-hidden">
+            <div id="loginSingleUserName" class="text-sm font-extrabold text-slate-900 truncate">Nama Pengguna</div>
+            <div id="loginSingleUserDept" class="text-xs text-slate-500 truncate">Jabatan / Bahagian</div>
+          </div>
+        </div>
+
+        <!-- Multi-officer selection dropdown (Ketua Jabatan / Pegawai) with Memory! -->
+        <div id="loginMultiUserSection" class="space-y-1.5 hidden">
+          <label class="block text-xs font-bold text-slate-700">
+            Pilih Nama Pegawai / Pengguna <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <select id="loginOfficerSelect" onchange="onLoginOfficerChange()" class="w-full p-3 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-800 bg-white outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <div id="loginOfficerDetailBadge" class="text-[11px] text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between">
+            <span id="loginOfficerDeptText" class="font-semibold text-slate-700">Jabatan</span>
+            <span id="loginOfficerEmailText" class="font-mono text-slate-400">emel@mdj.gov.my</span>
+          </div>
+        </div>
+
+        <!-- Password input field -->
+        <form id="formRolePasswordLogin" onsubmit="submitRoleLogin(event)" class="space-y-4 pt-1">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-slate-700">Kata Laluan</label>
+              <button type="button" onclick="fillDefaultPassword()" class="text-[10px] text-amber-700 hover:text-amber-900 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200 transition">
+                ⚡ Isi Lalai: 123456
+              </button>
+            </div>
+            <div class="relative">
+              <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3 top-3.5"></i>
+              <input type="password" id="loginPasswordInput" required value="123456" placeholder="Masukkan kata laluan" class="w-full pl-9 pr-10 py-2.5 border-2 border-slate-200 rounded-xl text-xs font-mono font-medium outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition">
+              <button type="button" onclick="togglePasswordVisibility('loginPasswordInput', this)" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 transition" title="Tunjuk/Sembunyi Kata Laluan">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Kata laluan lalai untuk semua akaun MDJ ialah <strong class="text-slate-600">123456</strong>.</p>
+          </div>
+
+          <div id="loginErrorMsg" class="hidden p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold">
+            <!-- Error text -->
+          </div>
+
+          <button type="submit" id="btnLoginRoleSubmit" class="w-full py-3 bg-gradient-to-r from-red-800 to-red-700 hover:from-red-900 hover:to-red-800 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-red-900/20 transition flex items-center justify-center gap-2">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            <span>Log Masuk Sistem</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="bg-slate-50 p-3 text-center border-t border-slate-200 text-[11px] text-slate-400">
+        Hak Cipta Terpelihara &copy; Majlis Daerah Jelebu, Negeri Sembilan
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= TOP APP HEADER ================= -->
+  <header class="glass-header text-white sticky top-0 z-40 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- MDJ Logo & Title -->
+        <div class="flex items-center space-x-3.5">
+          <div class="w-12 h-12 rounded-xl bg-white p-1.5 flex items-center justify-center shadow-md border border-amber-400 flex-shrink-0">
+            <img src="/logo-mdj.png" alt="MDJ Logo" class="max-w-full max-h-full object-contain">
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs font-extrabold tracking-widest text-amber-400 uppercase">MAJLIS DAERAH JELEBU</span>
+              <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            </div>
+            <h1 class="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
+              SISTEM PEMANTAUAN KERJA BERSEPADU
+            </h1>
+          </div>
+        </div>
+
+        <!-- Real-Time Clock & Action Tools -->
+        <div class="hidden lg:flex items-center space-x-6 text-sm">
+          <div class="text-right border-r border-slate-700 pr-6">
+            <div id="liveClock" class="font-mono text-xs font-semibold text-amber-300">2026-10-15 11:00:00</div>
+            <div class="text-[11px] text-slate-400">Waktu Rasmi Pelayan MDJ</div>
+          </div>
+
+          <!-- Email Hub Button -->
+          <button onclick="openEmailModal()" class="relative flex items-center space-x-2 px-3.5 py-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-200 transition text-xs font-medium">
+            <i data-lucide="mail" class="w-4 h-4 text-amber-400"></i>
+            <span>Log Notifikasi Emel</span>
+            <span id="emailBadgeCount" class="ml-1 px-1.5 py-0.2 bg-amber-500 text-slate-900 rounded-full text-[10px] font-bold">0</span>
+          </button>
+        </div>
+
+        <!-- Action Tools: Profil Saya & Logout Button (Gambar 2 Removed) -->
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <!-- Button Profil Saya (Header Bar - Always Visible) -->
+          <button onclick="openProfileModal()" class="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-xs transition shadow-sm" title="Kemas kini profil, emel & kata laluan anda">
+            <i data-lucide="user-cog" class="w-4 h-4 text-amber-400"></i>
+            <span>Profil Saya</span>
+          </button>
+
+          <!-- Logout Button -->
+          <button onclick="handleLogout()" title="Log Keluar Sistem" class="px-3.5 py-2 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-200 transition flex items-center gap-1.5 text-xs font-bold shadow-sm">
+            <i data-lucide="log-out" class="w-4 h-4 text-red-400"></i>
+            <span>Log Keluar</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= SUB-BANNER: CURRENT USER PROFILE ================= -->
+  <div class="bg-white border-b border-slate-200 shadow-sm py-3 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div id="currentUserAvatar" class="w-10 h-10 rounded-full bg-slate-100 border-2 border-red-700 flex items-center justify-center font-bold text-red-900 text-xs shadow-sm">
+          --
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="currentUserName" class="text-sm font-bold text-slate-900">Memuatkan...</span>
+            <span id="currentUserRoleBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+              Peranan
+            </span>
+          </div>
+          <div id="currentUserDept" class="text-xs text-slate-500">Majlis Daerah Jelebu</div>
+        </div>
+      </div>
+
+      <!-- Quick Action Buttons based on role -->
+      <div class="flex items-center space-x-2">
+        <!-- Self-Service User Profile Button (Visible to all users) -->
+        <button onclick="openProfileModal()" class="flex items-center space-x-1.5 bg-red-50 hover:bg-red-100 text-red-900 border border-red-300 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm" title="Kemas kini profil, emel & kata laluan anda">
+          <i data-lucide="key-round" class="w-4 h-4 text-red-700"></i>
+          <span>Tukar Emel &amp; Password</span>
+        </button>
+
+        <button id="btnQuickAssign" onclick="openAssignModal()" class="hidden items-center space-x-2 bg-red-800 hover:bg-red-900 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-sm transition">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Agih Tugasan Baru</span>
+        </button>
+
+        <button onclick="triggerDueTodayReminder()" title="Imbas tugasan oren dan hantar emel amaran" class="flex items-center space-x-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 px-3 py-2 rounded-xl text-xs font-medium transition">
+          <i data-lucide="bell-ring" class="w-3.5 h-3.5 text-amber-600"></i>
+          <span class="hidden sm:inline">Semak Kotak Oren &amp; Noti Emel</span>
+          <span class="sm:hidden">Semak Oren</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- ============================================================== -->
+    <!-- VIEW 1: DASHBOARD EKSEKUTIF (SUPER ADMIN, YDP & SETIAUSAHA)    -->
+    <!-- ============================================================== -->
+    <div id="viewYDP" class="space-y-8">
+      
+      <!-- Executive Greeting & KPI Overview -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-red-950 via-slate-900 to-red-950 text-white p-6 sm:p-8 rounded-2xl shadow-xl border-t-4 border-amber-400">
+        <div>
+          <div id="ydpBannerBadge" class="inline-flex items-center space-x-2 bg-amber-400/20 border border-amber-400/30 text-amber-300 text-xs font-bold px-3 py-1 rounded-full mb-3">
+            <i data-lucide="award" class="w-3.5 h-3.5"></i>
+            <span id="ydpBannerBadgeText">Papan Pemuka Yang Dipertua (YDP) Majlis Daerah Jelebu</span>
+          </div>
+          <h2 id="ydpBannerTitle" class="text-2xl sm:text-3xl font-extrabold tracking-tight">Status Pemantauan Kerja Jabatan MDJ</h2>
+          <p class="text-slate-300 text-sm mt-1 max-w-2xl">
+            Pemantauan langsung aliran tugasan dari peringkat pengagihan oleh Ketua Bahagian, pelaksanaan lapangan oleh Pegawai, hingga pengesahan rasmi.
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button onclick="window.print()" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Cetak Ringkasan</span>
+          </button>
+          <button onclick="loadAllData()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 transition shadow-md shadow-amber-500/25">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>Muat Semula</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- KHAS SUPER ADMIN: PENGURUSAN JABATAN & PEGAWAI (TERSEMBUNYI LALAI) -->
+      <!-- Hanya dipaparkan kepada Super Admin sahaja                     -->
+      <!-- ============================================================== -->
+      <div id="superadminOnlySection" class="space-y-6 hidden">
+        <!-- Kad Suis Buka/Tutup -->
+        <div class="card-executive p-5 bg-gradient-to-r from-purple-50 via-indigo-50 to-slate-50 border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <span class="p-3 bg-purple-700 text-white rounded-xl shadow-md shadow-purple-700/20">
+              <i data-lucide="building-2" class="w-6 h-6"></i>
+            </span>
+            <div>
+              <div class="inline-flex items-center space-x-1.5 text-purple-700 text-[11px] font-extrabold uppercase tracking-wider mb-0.5">
+                <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+                <span>Kawalan Khas Super Admin MDJ</span>
+              </div>
+              <h3 class="text-sm sm:text-base font-extrabold text-purple-950">Pusat Pengurusan Jabatan &amp; Pegawai MDJ</h3>
+              <p class="text-xs text-purple-800">Menambah jabatan manual, mendaftar pegawai baru, kemas kini peranan dan maklumat kakitangan.</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openAddDeptModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow transition">
+              <i data-lucide="building" class="w-4 h-4"></i>
+              <span>+ Tambah Jabatan</span>
+            </button>
+            <button onclick="openAddUserModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-purple-600/30 transition">
+              <i data-lucide="user-plus" class="w-4 h-4"></i>
+              <span>+ Tambah Pegawai</span>
+            </button>
+            <button id="btnToggleDeptStaff" onclick="toggleDeptStaffTables()" class="px-4 py-2.5 rounded-xl font-bold text-xs bg-purple-800 hover:bg-purple-900 text-white shadow-md transition flex items-center gap-1.5 flex-shrink-0">
+              <i data-lucide="sliders" class="w-4 h-4"></i>
+              <span id="btnToggleDeptStaffText">▼ Buka Pengurusan Jabatan &amp; Pegawai</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Container Seksyen 1 & 2 (Tersembunyi secara lalai) -->
+        <div id="superadminManagementSection" class="space-y-6 hidden">
+          <!-- SEKSYEN 1: PENGURUSAN JABATAN & BAHAGIAN MDJ (MANUAL ENTRY) -->
+          <div class="card-executive overflow-hidden border-indigo-200">
+            <div class="p-5 border-b border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <span class="p-2 bg-indigo-600 text-white rounded-lg">
+                  <i data-lucide="building-2" class="w-4 h-4"></i>
+                </span>
+                <div>
+                  <h3 class="text-sm font-bold text-indigo-950">Senarai Jabatan &amp; Bahagian MDJ (Didaftarkan Manual)</h3>
+                  <p class="text-xs text-indigo-700">Anda boleh tambah nama jabatan, tukar nama, atau padam. Tugasan akan ditapis mengikut jabatan ini.</p>
+                </div>
+              </div>
+              <button onclick="openAddDeptModal()" class="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition flex items-center gap-1 shadow-sm">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Tambah Jabatan
+              </button>
+            </div>
+
+            <div class="p-4 overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th class="px-4 py-2.5">Nama Jabatan / Bahagian</th>
+                    <th class="px-4 py-2.5">Bilangan Pegawai Berdaftar</th>
+                    <th class="px-4 py-2.5">Tarikh Dicipta</th>
+                    <th class="px-4 py-2.5 text-right">Tindakan</th>
+                  </tr>
+                </thead>
+                <tbody id="superadminDeptTableBody" class="divide-y divide-slate-200 bg-white">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- SEKSYEN 2: PENGURUSAN PEGAWAI & PENGGUNA MDJ -->
+          <div class="card-executive overflow-hidden">
+            <div class="p-5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i data-lucide="users" class="w-5 h-5 text-purple-600"></i>
+                  <span>Senarai Kakitangan &amp; Pegawai Majlis Daerah Jelebu</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">Semua pengguna yang didaftarkan untuk menerima arahan, menyelia atau memantau kerja.</p>
+              </div>
+              <span id="superadminUserCount" class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold">0 Pegawai</span>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px] tracking-wider border-b border-slate-200">
+                  <tr>
+                    <th class="px-5 py-3.5">Nama Penuh Pegawai</th>
+                    <th class="px-4 py-3.5">Emel Rasmi MDJ</th>
+                    <th class="px-4 py-3.5">Peranan Sistem</th>
+                    <th class="px-4 py-3.5">Jabatan / Bahagian</th>
+                    <th class="px-4 py-3.5">No. Telefon</th>
+                    <th class="px-4 py-3.5 text-right">Tindakan</th>
+                  </tr>
+                </thead>
+                <tbody id="superadminUserTableBody" class="divide-y divide-slate-200 bg-white">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI METRIC CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <!-- Total -->
+        <div class="card-executive p-4 border-l-4 border-slate-600">
+          <div class="text-xs font-semibold text-slate-500 uppercase">Jumlah Tugasan</div>
+          <div id="kpiTotal" class="text-2xl font-extrabold text-slate-900 mt-1">0</div>
+          <div class="text-[11px] text-slate-400 mt-1">Keseluruhan rekod</div>
+        </div>
+
+        <!-- Kotak Hijau -->
+        <div class="card-executive p-4 border-l-4 border-emerald-500 bg-emerald-50/30">
+          <div class="text-xs font-semibold text-emerald-700 uppercase flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Kotak Hijau
+          </div>
+          <div id="kpiHijau" class="text-2xl font-extrabold text-emerald-700 mt-1">0</div>
+          <div class="text-[11px] text-emerald-600/80 mt-1">Dalam tempoh selamat</div>
+        </div>
+
+        <!-- Kotak Oren -->
+        <div class="card-executive p-4 border-l-4 border-amber-500 bg-amber-50/40">
+          <div class="text-xs font-semibold text-amber-700 uppercase flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Tamat Hari Ini
+          </div>
+          <div id="kpiOren" class="text-2xl font-extrabold text-amber-700 mt-1">0</div>
+          <div class="text-[11px] text-amber-600/80 mt-1">Perlu hantar hari ini</div>
+        </div>
+
+        <!-- Kotak Merah -->
+        <div class="card-executive p-4 border-l-4 border-rose-500 bg-rose-50/40">
+          <div class="text-xs font-semibold text-rose-700 uppercase flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span> Tamat Tempoh
+          </div>
+          <div id="kpiMerah" class="text-2xl font-extrabold text-rose-700 mt-1">0</div>
+          <div class="text-[11px] text-rose-600/80 mt-1">Tugasan tertunggak</div>
+        </div>
+
+        <!-- Menunggu Pengesahan -->
+        <div class="card-executive p-4 border-l-4 border-blue-500 bg-blue-50/30">
+          <div class="text-xs font-semibold text-blue-700 uppercase">Menunggu Sah KB</div>
+          <div id="kpiDihantar" class="text-2xl font-extrabold text-blue-700 mt-1">0</div>
+          <div class="text-[11px] text-blue-600/80 mt-1">Pegawai telah hantar</div>
+        </div>
+
+        <!-- Disahkan Selesai -->
+        <div class="card-executive p-4 border-l-4 border-emerald-600 bg-emerald-50/60">
+          <div class="text-xs font-semibold text-emerald-800 uppercase">Disahkan Selesai</div>
+          <div id="kpiDisahkan" class="text-2xl font-extrabold text-emerald-800 mt-1">0</div>
+          <div id="kpiRate" class="text-[11px] text-emerald-700 font-semibold mt-1">0% Selesai</div>
+        </div>
+      </div>
+
+      <!-- Main Audit Table for YDP -->
+      <div class="card-executive overflow-hidden">
+        <div class="p-5 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <i data-lucide="list-checks" class="w-5 h-5 text-red-700"></i>
+              <span>Senarai Audit Lengkap &amp; Rekod Masa Sebenar (MDJ)</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Memaparkan rekod tarikh dan masa bagi setiap tindakan pegawai dan pengesahan Ketua Bahagian.</p>
+          </div>
+
+          <!-- Filters: Jabatan & Status Kotak Masa -->
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="ydpFilterDept" onchange="filterYdpTasks()" class="text-xs font-semibold bg-white border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-red-600">
+              <option value="semua">Semua Jabatan MDJ</option>
+              <!-- Dynamically populated from registered departments -->
+            </select>
+            <select id="ydpFilterStatus" onchange="filterYdpTasks()" class="text-xs font-semibold bg-white border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-red-600">
+              <option value="semua">Semua Status Kotak Masa</option>
+              <option value="hijau">🟢 Kotak Hijau (Baki Hari)</option>
+              <option value="oren">🟠 Kotak Oren (Tamat Hari Ini)</option>
+              <option value="merah">🔴 Kotak Merah (Lewat)</option>
+              <option value="dihantar">🔵 Menunggu Pengesahan KB</option>
+              <option value="disahkan">✓ Telah Disahkan Selesai</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold text-[11px] tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="px-5 py-3.5">No. / Tugasan</th>
+                <th class="px-4 py-3.5">Lokasi &amp; Tempat</th>
+                <th class="px-4 py-3.5">Pegawai Bertugas</th>
+                <th class="px-4 py-3.5">Status Kotak Masa</th>
+                <th class="px-4 py-3.5">Tarikh &amp; Masa Dihantar</th>
+                <th class="px-4 py-3.5">Tarikh &amp; Masa Disahkan KB</th>
+                <th class="px-4 py-3.5 text-right">Tindakan</th>
+              </tr>
+            </thead>
+            <tbody id="ydpTaskTableBody" class="divide-y divide-slate-200 bg-white">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 2: DASHBOARD KETUA BAHAGIAN                              -->
+    <!-- ============================================================== -->
+    <div id="viewKB" class="space-y-8 hidden">
+      
+      <!-- KB Banner -->
+      <div class="bg-gradient-to-r from-slate-900 via-red-950 to-slate-950 text-white p-6 sm:p-7 rounded-2xl shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-amber-400">
+        <div>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30 uppercase">
+            Pusat Pengurusan Bahagian MDJ
+          </span>
+          <h2 class="text-xl sm:text-2xl font-bold mt-2">Pengagihan &amp; Pengesahan Tugasan</h2>
+          <p class="text-slate-300 text-xs sm:text-sm mt-1">
+            Agihkan tugasan kepada pegawai seliaan, pantau status kotak masa, dan sahkan laporan bergambar yang telah disiapkan.
+          </p>
+        </div>
+        <button onclick="openAssignModal()" class="bg-red-700 hover:bg-red-800 text-white px-5 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-700/30 transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>+ Agih Tugasan Baru</span>
+        </button>
+      </div>
+
+      <!-- Section: Urgent Verifications -->
+      <div class="card-executive overflow-hidden border-amber-200">
+        <div class="p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-200 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <span class="p-2 bg-amber-500 text-white rounded-lg">
+              <i data-lucide="clock" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <h3 class="text-sm font-bold text-amber-950">Menunggu Pengesahan Anda (Tindakan Segera)</h3>
+              <p class="text-xs text-amber-800">Pegawai telah memuat naik bukti bergambar dan laporan. Sila semak dan sahkan.</p>
+            </div>
+          </div>
+          <span id="kbPendingCountBadge" class="px-2.5 py-1 bg-amber-200 text-amber-900 rounded-full text-xs font-bold">0 Tugasan</span>
+        </div>
+        <div id="kbPendingReviewList" class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Section: All Subordinate Tasks -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i data-lucide="users" class="w-5 h-5 text-red-700"></i>
+            <span>Semua Tugasan di Bawah Seliaan Anda</span>
+          </h3>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="filterKBTasks('semua')" class="kb-tab-btn active px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white" data-filter="semua">Semua</button>
+            <button onclick="filterKBTasks('baru')" class="kb-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-filter="baru">Sedang Dilaksana</button>
+            <button onclick="filterKBTasks('disahkan')" class="kb-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-filter="disahkan">Selesai Disahkan</button>
+          </div>
+        </div>
+
+        <div id="kbAllTaskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- VIEW 3: DASHBOARD PEGAWAI BERTUGAS (FIELD WORKSPACE)           -->
+    <!-- ============================================================== -->
+    <div id="viewPegawai" class="space-y-8 hidden">
+      
+      <!-- Pegawai Banner & Kotak Masa Legend -->
+      <div class="bg-gradient-to-r from-emerald-950 via-slate-900 to-teal-950 text-white p-6 sm:p-7 rounded-2xl shadow-lg border-l-4 border-emerald-400">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 uppercase">
+              Ruang Kerja Pegawai Lapangan MDJ
+            </span>
+            <h2 class="text-xl sm:text-2xl font-bold mt-2">Senarai Tugasan &amp; Kotak Masa</h2>
+            <p class="text-slate-300 text-xs sm:text-sm mt-1">
+              Perhatikan penunjuk kotak masa pada setiap tugasan. Muat naik gambar bukti di lokasi dan hantar laporan sebelum tamat tempoh.
+            </p>
+          </div>
+        </div>
+
+        <!-- Visual Kotak Masa Legend Guide -->
+        <div class="mt-6 pt-5 border-t border-emerald-800/50 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="flex items-center space-x-2.5 bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-700/50">
+            <span class="w-4 h-4 rounded-md bg-emerald-500 flex-shrink-0"></span>
+            <div>
+              <div class="text-xs font-bold text-emerald-300">🟢 Kotak Hijau</div>
+              <div class="text-[11px] text-slate-300">Tugasan baru diterima &amp; ada baki hari</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2.5 bg-amber-950/60 p-2.5 rounded-xl border border-amber-700/50">
+            <span class="w-4 h-4 rounded-md bg-amber-500 animate-pulse flex-shrink-0"></span>
+            <div>
+              <div class="text-xs font-bold text-amber-300">🟠 Kotak Oren</div>
+              <div class="text-[11px] text-slate-300">Tamat hari ini (perlu hantar segera)</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2.5 bg-rose-950/60 p-2.5 rounded-xl border border-rose-700/50">
+            <span class="w-4 h-4 rounded-md bg-rose-500 flex-shrink-0"></span>
+            <div>
+              <div class="text-xs font-bold text-rose-300">🔴 Kotak Merah</div>
+              <div class="text-[11px] text-slate-300">Tamat tempoh (telah lewat)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Officer Task Filter Tabs -->
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="clipboard-list" class="w-5 h-5 text-emerald-600"></i>
+          <span>Tugasan Anda</span>
+        </h3>
+        <div class="flex items-center space-x-1 sm:space-x-2">
+          <button onclick="filterPegawaiTasks('semua')" class="pegawai-tab-btn active px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white" data-filter="semua">Semua</button>
+          <button onclick="filterPegawaiTasks('hijau')" class="pegawai-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-filter="hijau">🟢 Hijau</button>
+          <button onclick="filterPegawaiTasks('oren')" class="pegawai-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-filter="oren">🟠 Oren</button>
+          <button onclick="filterPegawaiTasks('merah')" class="pegawai-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-filter="merah">🔴 Merah</button>
+          <button onclick="filterPegawaiTasks('disahkan')" class="pegawai-tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-filter="disahkan">Selesai</button>
+        </div>
+      </div>
+
+      <!-- Officer Task Cards Grid -->
+      <div id="pegawaiTaskList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Populated dynamically with rich Kotak Masa cards -->
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <img src="/logo-mdj.png" alt="MDJ" class="w-6 h-6 object-contain">
+        <span class="font-bold text-slate-800">Majlis Daerah Jelebu, Negeri Sembilan</span>
+      </div>
+      <p>Sistem Pemantauan Kerja Bersepadu • Audit Trail Automatik &amp; Kotak Masa SLA</p>
+    </div>
+  </footer>
+
+
+  <!-- ============================================================== -->
+  <!-- MODAL: TAMBAH / KEMASKINI PEGAWAI (SUPERADMIN)                 -->
+  <!-- ============================================================== -->
+  <div id="modalUserEdit" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100">
+      <div class="bg-purple-950 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="user-check" class="w-5 h-5 text-purple-400"></i>
+          <h3 id="modalUserTitle" class="font-bold text-base">Tambah Pegawai / Pengguna Baru</h3>
+        </div>
+        <button onclick="closeUserEditModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formUserEdit" onsubmit="submitUserEdit(event)" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="editUserId">
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Penuh Pegawai <span class="text-rose-500">*</span></label>
+          <input type="text" id="editUserName" required placeholder="Cth: Muhammad Daniel bin Razak" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-purple-600 font-medium">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Alamat Emel Rasmi <span class="text-rose-500">*</span></label>
+          <input type="email" id="editUserEmail" required placeholder="nama@mdj.gov.my" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-purple-600 font-medium">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Peranan Sistem <span class="text-rose-500">*</span></label>
+            <select id="editUserRole" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-purple-600 font-medium">
+              <option value="pegawai">Pegawai Bertugas</option>
+              <option value="ketua_bahagian">Ketua Jabatan / Bahagian</option>
+              <option value="setiausaha">Setiausaha (SU)</option>
+              <option value="ydp">Yang Dipertua (YDP)</option>
+              <option value="superadmin">Super Admin</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">No. Telefon</label>
+            <input type="text" id="editUserPhone" placeholder="012-3456789" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-purple-600 font-medium">
+          </div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block font-bold text-slate-700">Jabatan / Bahagian MDJ <span class="text-rose-500">*</span></label>
+            <button type="button" onclick="openAddDeptModal()" class="text-[11px] text-indigo-700 hover:text-indigo-900 font-bold flex items-center gap-0.5">
+              <i data-lucide="plus-circle" class="w-3 h-3"></i> + Tambah Jabatan Baru
+            </button>
+          </div>
+          <select id="editUserDept" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-purple-600 font-medium bg-white">
+            <!-- Populated dynamically from Admin's manually added departments table -->
+          </select>
+          <p class="text-[10px] text-slate-400 mt-1">Senarai ini dijana secara automatik mengikut senarai jabatan yang dimasukkan secara manual oleh Admin.</p>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kata Laluan (Pilihan)</label>
+          <input type="text" id="editUserPassword" placeholder="Biarkan kosong untuk kekalkan yang sedia ada" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-purple-600 font-mono">
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeUserEditModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold hover:bg-slate-50 transition">Batal</button>
+          <button type="submit" id="btnSaveUser" class="px-5 py-2 bg-purple-700 hover:bg-purple-800 text-white rounded-lg font-bold shadow-md transition flex items-center gap-1.5">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>Simpan Maklumat</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- MODAL: TAMBAH / KEMASKINI JABATAN (SUPERADMIN)                 -->
+  <!-- ============================================================== -->
+  <div id="modalDeptEdit" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+      <div class="bg-indigo-950 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="building" class="w-5 h-5 text-indigo-400"></i>
+          <h3 id="modalDeptTitle" class="font-bold text-sm">Tambah Jabatan / Bahagian MDJ</h3>
+        </div>
+        <button onclick="closeDeptEditModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formDeptEdit" onsubmit="submitDeptEdit(event)" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="editDeptId">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Nama Jabatan / Bahagian MDJ <span class="text-rose-500">*</span></label>
+          <input type="text" id="editDeptName" required placeholder="Cth: Jabatan Landskap / Jabatan Kejuruteraan" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-indigo-600 font-medium">
+        </div>
+        <p class="text-[11px] text-slate-500">Jabatan ini akan dipaparkan secara automatik dalam pilihan pegawai dan penapisan tugasan.</p>
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeDeptEditModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold hover:bg-slate-50 transition">Batal</button>
+          <button type="submit" id="btnSaveDept" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-md transition">Simpan Jabatan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- MODAL: AGIH TUGASAN BARU (KETUA BAHAGIAN / JABATAN)           -->
+  <!-- ============================================================== -->
+  <div id="modalAssign" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
+      <div class="bg-slate-900 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-bold text-base">Borang Agihan Tugasan Baru (MDJ)</h3>
+        </div>
+        <button onclick="closeAssignModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formAssignTask" onsubmit="submitAssignTask(event)" class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tajuk Tugasan <span class="text-rose-500">*</span></label>
+          <input type="text" id="assignTitle" required placeholder="Cth: Pemeriksaan Saliran Tapak Pekan Kuala Klawang" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600 font-medium">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Lokasi (Kawasan / Zon) <span class="text-rose-500">*</span></label>
+            <input type="text" id="assignLocation" required placeholder="Cth: Kuala Klawang / Titi / Simpang Durian" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600 font-medium">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tempat Khusus <span class="text-rose-500">*</span></label>
+            <input type="text" id="assignVenue" required placeholder="Cth: Pasar Awam Kuala Klawang / Parit Utama" class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600 font-medium">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block font-bold text-slate-700">Pegawai Bertugas <span class="text-rose-500">*</span></label>
+              <span id="assignDeptFilterBadge" class="text-[10px] bg-amber-100 text-amber-900 font-bold px-1.5 py-0.2 rounded truncate max-w-[120px]">Semua</span>
+            </div>
+            <select id="assignOfficer" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600 font-medium bg-white">
+              <!-- Dynamically populated with officers matching the Ketua Jabatan's department -->
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Tarikh Akhir (Dateline) <span class="text-rose-500">*</span></label>
+            <input type="date" id="assignDeadline" required class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600 font-medium">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Arahan / Deskripsi Tugasan <span class="text-rose-500">*</span></label>
+          <textarea id="assignDesc" required rows="3" placeholder="Sila nyatakan skop kerja, keperluan teknikal, dan perkara yang perlu dilaporkan..." class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600"></textarea>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[11px] text-amber-900 space-y-1">
+          <div class="font-bold flex items-center gap-1">
+            <i data-lucide="info" class="w-3.5 h-3.5 text-amber-700"></i>
+            <span>Notifikasi Automatik Selepas Dihantar:</span>
+          </div>
+          <div>1. <strong>Pegawai:</strong> Terima arahan tugasan melalui notifikasi emel &amp; dalam sistem.</div>
+          <div>2. <strong>YDP:</strong> Terima makluman awal bahawa tugasan telah diagihkan di peringkat jabatan MDJ.</div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeAssignModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold hover:bg-slate-50 transition">Batal</button>
+          <button type="submit" id="btnSubmitAssign" class="px-5 py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg font-bold shadow-md transition flex items-center gap-1.5">
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            <span>Agih &amp; Hantar Notifikasi</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- MODAL: HANTAR TUGASAN & BUKTI BERGAMBAR (PEGAWAI)             -->
+  <!-- ============================================================== -->
+  <div id="modalSubmitTask" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100">
+      <div class="bg-emerald-900 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="upload-cloud" class="w-5 h-5 text-emerald-400"></i>
+          <h3 class="font-bold text-base">Hantar Laporan &amp; Bukti Bergambar (MDJ)</h3>
+        </div>
+        <button onclick="closeSubmitTaskModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formSubmitTask" onsubmit="submitOfficerReport(event)" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="submitTaskId">
+
+        <!-- Task Summary Details -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Tugasan:</div>
+          <div id="submitTaskTitle" class="text-sm font-bold text-slate-900 mt-0.5">--</div>
+          <div id="submitTaskVenue" class="text-xs text-slate-600 mt-1">--</div>
+        </div>
+
+        <!-- Real-Time Server Timestamp Indicator -->
+        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center justify-between">
+          <div>
+            <div class="text-[11px] font-bold text-emerald-900">Tarikh &amp; Masa Sebenar Penghantaran:</div>
+            <div id="submitLiveTimestamp" class="font-mono text-xs font-bold text-emerald-700 mt-0.5">--</div>
+          </div>
+          <span class="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-full font-bold">Auto-Kunci</span>
+        </div>
+
+        <!-- Photo Upload & Camera Capture -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">
+            Bukti Bergambar di Lokasi <span class="text-rose-500">* (Boleh pilih beberapa keping imej)</span>
+          </label>
+          <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:bg-slate-50 transition cursor-pointer relative" onclick="document.getElementById('evidencePhotos').click()">
+            <input type="file" id="evidencePhotos" accept="image/*" multiple onchange="previewSelectedPhotos(this)" class="hidden">
+            <i data-lucide="camera" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+            <div class="text-xs font-semibold text-slate-700">Klik untuk pilih gambar atau tangkap foto kamera</div>
+            <div class="text-[11px] text-slate-500 mt-0.5">Format JPG / PNG (Maksimum 5 keping imej)</div>
+          </div>
+          <!-- Preview container -->
+          <div id="photoPreviewContainer" class="photo-preview-grid mt-3 hidden"></div>
+        </div>
+
+        <!-- Written Report -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Laporan Bertulis Pegawai <span class="text-rose-500">*</span></label>
+          <textarea id="submitReportText" required rows="4" placeholder="Sila terangkan tindakan yang telah dilaksanakan, status kerja, atau sebarang penemuan di tapak..." class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-emerald-600 font-normal"></textarea>
+        </div>
+
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-[11px] text-amber-800">
+          <strong>Perhatian:</strong> Selepas butang hantar ditekan, notifikasi emel rasmi akan dihantar serentak kepada <strong>Ketua Bahagian</strong> untuk pengesahan dan kepada <strong>YDP MDJ</strong> sebagai makluman eksekutif.
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeSubmitTaskModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold hover:bg-slate-50 transition">Batal</button>
+          <button type="submit" id="btnConfirmSubmit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md transition flex items-center gap-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Hantar Tugasan Sekarang</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- MODAL: SEMAK & SAHKAN TUGASAN (KETUA BAHAGIAN)               -->
+  <!-- ============================================================== -->
+  <div id="modalVerifyTask" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-100">
+      <div class="bg-slate-900 text-white p-5 flex items-center justify-between sticky top-0 z-10">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="check-square" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="font-bold text-base">Semakan Bukti &amp; Pengesahan Tugasan (MDJ)</h3>
+        </div>
+        <button onclick="closeVerifyTaskModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5 text-xs">
+        <input type="hidden" id="verifyTaskId">
+
+        <!-- Task Metadata Header -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="verifyTaskNo" class="font-bold text-red-800 text-xs uppercase">--</span>
+            <span id="verifyTaskStatusBadge" class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">Menunggu Sah</span>
+          </div>
+          <h4 id="verifyTaskTitle" class="text-sm font-extrabold text-slate-900">--</h4>
+          <div class="grid grid-cols-2 gap-2 text-slate-600 pt-1 border-t border-slate-200">
+            <div><strong>Pegawai:</strong> <span id="verifyOfficerName">--</span></div>
+            <div><strong>Lokasi:</strong> <span id="verifyLocation">--</span></div>
+            <div><strong>Tarikh Hantar:</strong> <span id="verifySubmittedAt" class="font-mono text-emerald-700 font-bold">--</span></div>
+            <div><strong>Tarikh Akhir:</strong> <span id="verifyDeadline">--</span></div>
+          </div>
+        </div>
+
+        <!-- Written Report Section -->
+        <div>
+          <label class="block font-bold text-slate-800 mb-1.5 uppercase text-[11px] tracking-wider">Laporan Bertulis Pegawai:</label>
+          <div id="verifyReportText" class="p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-800 text-xs leading-relaxed whitespace-pre-wrap font-medium">
+            --
+          </div>
+        </div>
+
+        <!-- Evidence Photos Section -->
+        <div>
+          <label class="block font-bold text-slate-800 mb-1.5 uppercase text-[11px] tracking-wider">Bukti Bergambar di Lokasi:</label>
+          <div id="verifyPhotosGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <!-- Dynamic images -->
+          </div>
+        </div>
+
+        <!-- Verification Notes Form -->
+        <div class="pt-4 border-t border-slate-200">
+          <label class="block font-bold text-slate-700 mb-1">Catatan Pengesahan Ketua Bahagian:</label>
+          <input type="text" id="verifyNotes" placeholder="Cth: Disahkan memuaskan mengikut spesifikasi MDJ." value="Disahkan lengkap dan memuaskan." class="w-full border border-slate-300 rounded-lg p-2.5 text-xs outline-none focus:border-red-600">
+        </div>
+
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-[11px] text-emerald-800">
+          <strong>Kesan Pengesahan:</strong> Sistem akan merekodkan tarikh dan masa sebenar pengesahan, dan secara automatik menghantar notifikasi rasmi kepada <strong>YDP Majlis Daerah Jelebu</strong> mengesahkan bahawa tugasan telah selesai.
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeVerifyTaskModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold hover:bg-slate-50 transition">Tutup</button>
+          <button type="button" onclick="confirmTaskVerification()" id="btnConfirmVerify" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-md transition flex items-center gap-2">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>✓ SAHKAN TUGASAN SEKARANG</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============================================================== -->
+  <!-- MODAL: PUSAT LOG EMEL & NOTIFIKASI MDJ                         -->
+  <!-- ============================================================== -->
+  <div id="modalEmails" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-100">
+      <div class="bg-gradient-to-r from-red-950 to-slate-900 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <img src="/logo-mdj.png" alt="MDJ" class="w-7 h-7 object-contain bg-white rounded p-0.5">
+          <div>
+            <h3 class="font-bold text-base">Pusat Notifikasi Emel Rasmi MDJ</h3>
+            <p class="text-[11px] text-amber-300">Rekod lengkap emel automatik yang dihantar kepada Pegawai, Ketua Bahagian &amp; YDP.</p>
+          </div>
+        </div>
+        <button onclick="closeEmailModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+        <span class="text-slate-600">Klik mana-mana emel untuk melihat surat rasmi:</span>
+        <button onclick="loadEmailLogs()" class="text-red-700 hover:text-red-900 font-semibold flex items-center gap-1">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Muat Semula Log
+        </button>
+      </div>
+
+      <!-- List -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-3" id="emailLogsList">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Preview Content Modal -->
+  <div id="modalEmailPreview" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden flex flex-col">
+      <div class="bg-slate-800 text-white p-4 flex items-center justify-between">
+        <h4 id="emailPreviewSubject" class="font-bold text-sm">Pratonton Emel Rasmi MDJ</h4>
+        <button onclick="closeEmailPreviewModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="p-2 border-b border-slate-200 bg-slate-50 text-[11px] text-slate-600 flex justify-between">
+        <span><strong>Penerima:</strong> <span id="emailPreviewTo"></span></span>
+        <span><strong>Waktu Dihantar:</strong> <span id="emailPreviewDate" class="font-mono"></span></span>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4" id="emailPreviewBody">
+        <!-- Injected HTML -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- MODAL: PROFIL SAYA (SEMUA PENGGUNA)                           -->
+  <!-- ============================================================== -->
+  <div id="modalUserProfile" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="bg-gradient-to-r from-red-950 via-red-900 to-slate-900 text-white p-5 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <span class="p-2 bg-white/10 rounded-xl text-amber-400">
+            <i data-lucide="user-cog" class="w-5 h-5"></i>
+          </span>
+          <div>
+            <h3 class="font-extrabold text-sm sm:text-base">Profil Saya &amp; Keselamatan</h3>
+            <p class="text-[11px] text-red-200">Kemas kini maklumat peribadi &amp; kata laluan anda</p>
+          </div>
+        </div>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="formUserProfile" onsubmit="submitProfileUpdate(event)" class="p-6 space-y-4 text-xs">
+        
+        <!-- Official Identity (Read Only) -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+          <div class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Maklumat Rasmi Jawatan (MDJ)</div>
+          <div class="flex items-center justify-between">
+            <div>
+              <div id="profileViewName" class="text-sm font-extrabold text-slate-900">Nama Pegawai</div>
+              <div id="profileViewDept" class="text-xs text-slate-600 font-medium">Jabatan / Bahagian</div>
+            </div>
+            <span id="profileViewRoleBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-900 border border-red-200">
+              Peranan
+            </span>
+          </div>
+        </div>
+
+        <!-- Editable: Alamat Emel Rasmi -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">
+            Alamat Emel Rasmi (Notifikasi Sistem) <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input type="email" id="profileEmail" required class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium outline-none focus:border-red-600">
+          </div>
+          <p class="text-[10px] text-slate-400 mt-1">Notifikasi emel tugasan dan pengesahan akan dihantar ke alamat emel ini.</p>
+        </div>
+
+        <!-- Editable: No Telefon -->
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">No. Telefon / WhatsApp</label>
+          <div class="relative">
+            <i data-lucide="phone" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input type="text" id="profilePhone" placeholder="012-3456789" class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-xs font-medium outline-none focus:border-red-600">
+          </div>
+        </div>
+
+        <!-- Editable: Tukar Kata Laluan -->
+        <div class="pt-3 border-t border-slate-200 space-y-3">
+          <div class="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-600"></i>
+            <span>Tukar Kata Laluan Baru (Pilihan)</span>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Kata Laluan Baru</label>
+            <div class="relative">
+              <input type="password" id="profileNewPassword" placeholder="Biarkan kosong jika tidak mahu tukar" class="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:border-red-600 font-mono">
+              <button type="button" onclick="togglePasswordVisibility('profileNewPassword', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition" title="Tunjuk/Sembunyi Kata Laluan">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Sahkan Kata Laluan Baru</label>
+            <div class="relative">
+              <input type="password" id="profileConfirmPassword" placeholder="Taip semula kata laluan baru" class="w-full pl-3 pr-10 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:border-red-600 font-mono">
+              <button type="button" onclick="togglePasswordVisibility('profileConfirmPassword', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition" title="Tunjuk/Sembunyi Kata Laluan">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-200">
+          <button type="button" onclick="closeProfileModal()" class="px-4 py-2 border border-slate-300 rounded-lg text-slate-600 font-semibold hover:bg-slate-50 transition">Batal</button>
+          <button type="submit" id="btnSaveProfile" class="px-5 py-2 bg-red-800 hover:bg-red-900 text-white rounded-lg font-bold shadow-md transition flex items-center gap-1.5">
+            <i data-lucide="save" class="w-3.5 h-3.5"></i>
+            <span>Simpan Profil</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
