@@ -452,10 +452,14 @@ async function loadAllData() {
       tasksUrl += `?role=${state.currentRole}&user_id=${state.currentUser.id}`;
     }
 
+    const userEmail = (state.currentUser && state.currentUser.email) ? state.currentUser.email : '';
+    const userRole = state.currentRole || '';
+    const emailsUrl = `/api/emails?email=${encodeURIComponent(userEmail)}&role=${encodeURIComponent(userRole)}&limit=30`;
+
     const [tasksRes, statsRes, emailsRes] = await Promise.all([
       fetch(tasksUrl),
       fetch('/api/stats'),
-      fetch('/api/emails?limit=20')
+      fetch(emailsUrl)
     ]);
 
     const tasksData = await tasksRes.json();
@@ -1430,7 +1434,7 @@ function openVerifyTaskModal(taskId) {
   if (task.images && task.images.length > 0) {
     task.images.forEach(imgUrl => {
       const imgWrapper = document.createElement('div');
-      imgWrapper.className = 'rounded-lg overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm';
+      imgWrapper.className = 'rounded-xl overflow-hidden border border-slate-200 aspect-video bg-slate-100 shadow-sm';
       imgWrapper.innerHTML = `
         <a href="${imgUrl}" target="_blank" title="Klik untuk saiz besar">
           <img src="${imgUrl}" alt="Bukti" class="w-full h-full object-cover hover:scale-105 transition duration-200">
@@ -1442,14 +1446,77 @@ function openVerifyTaskModal(taskId) {
     photoGrid.innerHTML = `<div class="col-span-full text-slate-400 italic py-4">Tiada gambar bukti dimuat naik.</div>`;
   }
 
-  const confirmBtn = document.getElementById('btnConfirmVerify');
-  if (task.status === 'dihantar' && (state.currentRole === 'ketua_bahagian' || state.currentRole === 'ydp' || state.currentRole === 'setiausaha' || state.currentRole === 'superadmin')) {
-    confirmBtn.classList.remove('hidden');
+  // 1. SECTION KETUA BAHAGIAN (Pengesahan & Ulasan Kerja)
+  const kbNotesDisplay = document.getElementById('kbNotesDisplay');
+  const kbFormContainer = document.getElementById('kbFormContainer');
+  const verifyNotesInput = document.getElementById('verifyNotes');
+  const btnConfirmVerify = document.getElementById('btnConfirmVerify');
+  const btnUpdateKbNotes = document.getElementById('btnUpdateKbNotes');
+  const kbTimeBadge = document.getElementById('kbVerifiedTimeBadge');
+
+  kbTimeBadge.innerText = task.verified_at ? `Tarikh Sah: ${task.verified_at}` : (task.status === 'dihantar' ? 'Menunggu Pengesahan' : 'Dalam Pelaksanaan');
+  verifyNotesInput.value = task.verification_notes || '';
+  kbNotesDisplay.innerText = task.verification_notes ? `Catatan KB: "${task.verification_notes}"` : 'Tiada catatan pengesahan daripada Ketua Bahagian setakat ini.';
+
+  const isKbOrAdmin = state.currentRole === 'ketua_bahagian' || state.currentRole === 'superadmin';
+  if (isKbOrAdmin) {
+    kbFormContainer.classList.remove('hidden');
+    kbNotesDisplay.classList.add('hidden');
+    if (task.status === 'dihantar') {
+      btnConfirmVerify.classList.remove('hidden');
+      btnUpdateKbNotes.classList.add('hidden');
+    } else if (task.status === 'disahkan') {
+      btnConfirmVerify.classList.add('hidden');
+      btnUpdateKbNotes.classList.remove('hidden');
+    } else {
+      btnConfirmVerify.classList.add('hidden');
+      btnUpdateKbNotes.classList.add('hidden');
+    }
   } else {
-    confirmBtn.classList.add('hidden');
+    kbFormContainer.classList.add('hidden');
+    kbNotesDisplay.classList.remove('hidden');
+  }
+
+  // 2. SECTION YANG DIPERTUA (YDP)
+  const ydpFormContainer = document.getElementById('ydpFormContainer');
+  const ydpNotesDisplay = document.getElementById('ydpNotesDisplay');
+  const ydpNotesInput = document.getElementById('ydpNotesInput');
+  const ydpTimeBadge = document.getElementById('ydpNotedTimeBadge');
+
+  ydpTimeBadge.innerText = task.ydp_noted_at ? `Direkodkan: ${task.ydp_noted_at}` : 'Belum ada ulasan YDP';
+  ydpNotesInput.value = task.ydp_notes || '';
+  ydpNotesDisplay.innerText = task.ydp_notes ? `Ulasan YDP: "${task.ydp_notes}"` : '(Belum ada ulasan daripada Yang Dipertua setakat ini)';
+
+  const isYdpOrAdmin = state.currentRole === 'ydp' || state.currentRole === 'superadmin';
+  if (isYdpOrAdmin) {
+    ydpFormContainer.classList.remove('hidden');
+    ydpNotesDisplay.classList.add('hidden');
+  } else {
+    ydpFormContainer.classList.add('hidden');
+    ydpNotesDisplay.classList.remove('hidden');
+  }
+
+  // 3. SECTION SETIAUSAHA (SU)
+  const suFormContainer = document.getElementById('suFormContainer');
+  const suNotesDisplay = document.getElementById('suNotesDisplay');
+  const suNotesInput = document.getElementById('suNotesInput');
+  const suTimeBadge = document.getElementById('suNotedTimeBadge');
+
+  suTimeBadge.innerText = task.su_noted_at ? `Direkodkan: ${task.su_noted_at}` : 'Belum ada ulasan Setiausaha';
+  suNotesInput.value = task.su_notes || '';
+  suNotesDisplay.innerText = task.su_notes ? `Ulasan SU: "${task.su_notes}"` : '(Belum ada ulasan daripada Setiausaha setakat ini)';
+
+  const isSuOrAdmin = state.currentRole === 'setiausaha' || state.currentRole === 'superadmin';
+  if (isSuOrAdmin) {
+    suFormContainer.classList.remove('hidden');
+    suNotesDisplay.classList.add('hidden');
+  } else {
+    suFormContainer.classList.add('hidden');
+    suNotesDisplay.classList.remove('hidden');
   }
 
   document.getElementById('modalVerifyTask').classList.remove('hidden');
+  lucide.createIcons();
 }
 
 function closeVerifyTaskModal() {
@@ -1491,6 +1558,110 @@ async function confirmTaskVerification() {
   }
 }
 
+async function updateKbNotes() {
+  const taskId = document.getElementById('verifyTaskId').value;
+  const notes = document.getElementById('verifyNotes').value;
+  const btn = document.getElementById('btnUpdateKbNotes');
+
+  btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Menyimpan...</span>`;
+
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/kb-notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        verification_notes: notes,
+        user_role: state.currentRole
+      })
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert('Catatan ulasan Ketua Bahagian telah berjaya dikemas kini.');
+      await loadAllData();
+      openVerifyTaskModal(taskId);
+    } else {
+      alert('Ralat: ' + result.error);
+    }
+  } catch (err) {
+    alert('Ralat sistem: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Kemas Kini Ulasan KB</span>`;
+    lucide.createIcons();
+  }
+}
+
+async function saveYdpNotes() {
+  const taskId = document.getElementById('verifyTaskId').value;
+  const notes = document.getElementById('ydpNotesInput').value;
+  const btn = document.getElementById('btnSaveYdpNotes');
+
+  btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Menyimpan...</span>`;
+
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/ydp-notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ydp_notes: notes,
+        user_id: state.currentUser ? state.currentUser.id : null,
+        user_role: state.currentRole
+      })
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert('Ulasan Yang Dipertua (YDP) telah berjaya disimpan ke dalam sistem.');
+      await loadAllData();
+      openVerifyTaskModal(taskId);
+    } else {
+      alert('Ralat: ' + result.error);
+    }
+  } catch (err) {
+    alert('Ralat sistem: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Simpan Ulasan YDP</span>`;
+    lucide.createIcons();
+  }
+}
+
+async function saveSuNotes() {
+  const taskId = document.getElementById('verifyTaskId').value;
+  const notes = document.getElementById('suNotesInput').value;
+  const btn = document.getElementById('btnSaveSuNotes');
+
+  btn.disabled = true;
+  btn.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Menyimpan...</span>`;
+
+  try {
+    const res = await fetch(`/api/tasks/${taskId}/su-notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        su_notes: notes,
+        user_id: state.currentUser ? state.currentUser.id : null,
+        user_role: state.currentRole
+      })
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert('Ulasan Setiausaha (SU) telah berjaya disimpan ke dalam sistem.');
+      await loadAllData();
+      openVerifyTaskModal(taskId);
+    } else {
+      alert('Ralat: ' + result.error);
+    }
+  } catch (err) {
+    alert('Ralat sistem: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Simpan Ulasan Setiausaha</span>`;
+    lucide.createIcons();
+  }
+}
+
 // ==========================================
 // MODAL: LOG EMEL & NOTIFIKASI
 // ==========================================
@@ -1505,17 +1676,19 @@ function closeEmailModal() {
 
 async function loadEmailLogs() {
   const container = document.getElementById('emailLogsList');
-  container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400">Memuatkan log emel...</div>`;
+  container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400">Memuatkan notifikasi anda...</div>`;
 
   try {
-    const res = await fetch('/api/emails?limit=30');
+    const userEmail = (state.currentUser && state.currentUser.email) ? state.currentUser.email : '';
+    const userRole = state.currentRole || '';
+    const res = await fetch(`/api/emails?email=${encodeURIComponent(userEmail)}&role=${encodeURIComponent(userRole)}&limit=30`);
     const result = await res.json();
     if (result.success) {
       state.emailLogs = result.data;
       document.getElementById('emailBadgeCount').innerText = state.emailLogs.length;
 
       if (state.emailLogs.length === 0) {
-        container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400">Belum ada emel notifikasi dijana.</div>`;
+        container.innerHTML = `<div class="py-8 text-center text-xs text-slate-400">Tiada emel notifikasi untuk akaun anda pada masa ini.</div>`;
         return;
       }
 
@@ -1527,6 +1700,7 @@ async function loadEmailLogs() {
 
         let roleBadgeClass = 'bg-slate-200 text-slate-700';
         if (mail.recipient_role === 'YDP') roleBadgeClass = 'bg-amber-100 text-amber-800 font-bold';
+        else if (mail.recipient_role === 'Setiausaha') roleBadgeClass = 'bg-blue-100 text-blue-800 font-bold';
         else if (mail.recipient_role === 'Ketua Bahagian') roleBadgeClass = 'bg-sky-100 text-sky-800 font-bold';
         else if (mail.recipient_role === 'Pegawai') roleBadgeClass = 'bg-emerald-100 text-emerald-800 font-bold';
 
@@ -1547,18 +1721,39 @@ async function loadEmailLogs() {
         `;
         container.appendChild(item);
       });
+      lucide.createIcons();
     }
   } catch (err) {
     console.error('Error fetching email logs:', err);
   }
 }
 
+let currentPreviewEmailTaskId = null;
+
 function previewEmailContent(mail) {
+  currentPreviewEmailTaskId = mail.task_id;
   document.getElementById('emailPreviewSubject').innerText = mail.subject;
   document.getElementById('emailPreviewTo').innerText = `${mail.recipient_name} <${mail.recipient_email}>`;
   document.getElementById('emailPreviewDate').innerText = mail.sent_at;
   document.getElementById('emailPreviewBody').innerHTML = mail.body_html;
+
+  const quickActionContainer = document.getElementById('emailPreviewQuickActions');
+  if (mail.task_id) {
+    quickActionContainer.classList.remove('hidden');
+  } else {
+    quickActionContainer.classList.add('hidden');
+  }
+
   document.getElementById('modalEmailPreview').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function openTaskFromEmail() {
+  if (currentPreviewEmailTaskId) {
+    closeEmailPreviewModal();
+    closeEmailModal();
+    openVerifyTaskModal(currentPreviewEmailTaskId);
+  }
 }
 
 function closeEmailPreviewModal() {
