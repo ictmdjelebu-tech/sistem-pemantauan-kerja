@@ -13,7 +13,9 @@ const {
   notifyTaskSubmittedToKB,
   notifyTaskSubmittedToYDP,
   notifyTaskVerifiedToYDP,
-  notifyTaskVerifiedToOfficer
+  notifyTaskVerifiedToOfficer,
+  notifyTaskYdpRemark,
+  notifyTaskSuRemark
 } = require('./mailer');
 
 const app = express();
@@ -454,11 +456,15 @@ app.get('/api/tasks', async (req, res) => {
         u_to.department AS assigned_to_dept,
         u_by.name AS assigned_by_name,
         u_by.department AS assigned_by_dept,
-        u_vf.name AS verified_by_name
+        u_vf.name AS verified_by_name,
+        u_ydp.name AS ydp_by_name,
+        u_su.name AS su_by_name
       FROM tasks t
       LEFT JOIN users u_to ON t.assigned_to = u_to.id
       LEFT JOIN users u_by ON t.assigned_by = u_by.id
       LEFT JOIN users u_vf ON t.verified_by = u_vf.id
+      LEFT JOIN users u_ydp ON t.ydp_by = u_ydp.id
+      LEFT JOIN users u_su ON t.su_by = u_su.id
       WHERE 1=1
     `;
     const params = [];
@@ -538,11 +544,15 @@ app.get('/api/tasks/:id', async (req, res) => {
         u_by.name AS assigned_by_name,
         u_by.email AS assigned_by_email,
         u_by.department AS assigned_by_dept,
-        u_vf.name AS verified_by_name
+        u_vf.name AS verified_by_name,
+        u_ydp.name AS ydp_by_name,
+        u_su.name AS su_by_name
       FROM tasks t
       LEFT JOIN users u_to ON t.assigned_to = u_to.id
       LEFT JOIN users u_by ON t.assigned_by = u_by.id
       LEFT JOIN users u_vf ON t.verified_by = u_vf.id
+      LEFT JOIN users u_ydp ON t.ydp_by = u_ydp.id
+      LEFT JOIN users u_su ON t.su_by = u_su.id
       WHERE t.id = ?
     `).get(req.params.id);
 
@@ -742,6 +752,107 @@ app.post('/api/tasks/:id/verify', async (req, res) => {
   }
 });
 
+// 6b. Ruangan Ulasan Yang Dipertua (YDP)
+app.post('/api/tasks/:id/ydp-notes', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const { ydp_notes, user_id, user_role } = req.body;
+
+    if (user_role !== 'ydp' && user_role !== 'superadmin') {
+      return res.status(403).json({ success: false, error: 'Hanya Yang Dipertua (YDP) dibenarkan mengisi atau mengemas kini ruangan ini.' });
+    }
+
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, error: 'Tugasan tidak dijumpai.' });
+    }
+
+    const notedAt = getFormattedNow();
+    await db.prepare('UPDATE tasks SET ydp_notes = ?, ydp_noted_at = ?, ydp_by = ? WHERE id = ?')
+      .run(ydp_notes !== undefined ? ydp_notes.trim() : '', notedAt, user_id || null, taskId);
+
+    const updatedTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const officer = await db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_to);
+    const kb = await db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_by);
+    const ydp = (user_id ? await db.prepare('SELECT * FROM users WHERE id = ?').get(user_id) : null) || await db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
+    const su = await db.prepare("SELECT * FROM users WHERE role = 'setiausaha' LIMIT 1").get();
+
+    if (ydp_notes && ydp_notes.trim()) {
+      notifyTaskYdpRemark(updatedTask, officer, kb, ydp, su).catch(e => console.error(e));
+    }
+
+    res.json({
+      success: true,
+      message: 'Ulasan Yang Dipertua (YDP) telah berjaya disimpan ke dalam pangkalan data MDJ.',
+      data: { ydp_notes: ydp_notes !== undefined ? ydp_notes.trim() : '', ydp_noted_at: notedAt }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6c. Ruangan Ulasan Setiausaha (SU) Majlis
+app.post('/api/tasks/:id/su-notes', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const { su_notes, user_id, user_role } = req.body;
+
+    if (user_role !== 'setiausaha' && user_role !== 'superadmin') {
+      return res.status(403).json({ success: false, error: 'Hanya Setiausaha (SU) dibenarkan mengisi atau mengemas kini ruangan ini.' });
+    }
+
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    if (!task) {
+      return res.status(404).json({ success: false, error: 'Tugasan tidak dijumpai.' });
+    }
+
+    const notedAt = getFormattedNow();
+    await db.prepare('UPDATE tasks SET su_notes = ?, su_noted_at = ?, su_by = ? WHERE id = ?')
+      .run(su_notes !== undefined ? su_notes.trim() : '', notedAt, user_id || null, taskId);
+
+    const updatedTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const officer = await db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_to);
+    const kb = await db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_by);
+    const ydp = await db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
+    const su = (user_id ? await db.prepare('SELECT * FROM users WHERE id = ?').get(user_id) : null) || await db.prepare("SELECT * FROM users WHERE role = 'setiausaha' LIMIT 1").get();
+
+    if (su_notes && su_notes.trim()) {
+      notifyTaskSuRemark(updatedTask, officer, kb, ydp, su).catch(e => console.error(e));
+    }
+
+    res.json({
+      success: true,
+      message: 'Ulasan Setiausaha (SU) telah berjaya disimpan ke dalam pangkalan data MDJ.',
+      data: { su_notes: su_notes !== undefined ? su_notes.trim() : '', su_noted_at: notedAt }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6d. Kemas Kini Ulasan Ketua Bahagian
+app.post('/api/tasks/:id/kb-notes', async (req, res) => {
+  try {
+    const taskId = req.params.id;
+    const { verification_notes, user_role } = req.body;
+
+    if (user_role !== 'ketua_bahagian' && user_role !== 'superadmin') {
+      return res.status(403).json({ success: false, error: 'Hanya Ketua Bahagian dibenarkan mengemas kini ruangan ini.' });
+    }
+
+    await db.prepare('UPDATE tasks SET verification_notes = ? WHERE id = ?')
+      .run(verification_notes !== undefined ? verification_notes.trim() : '', taskId);
+
+    res.json({
+      success: true,
+      message: 'Catatan Ketua Bahagian berjaya dikemas kini.',
+      data: { verification_notes: verification_notes !== undefined ? verification_notes.trim() : '' }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 7. Ketua Bahagian: One-Click Direct Verification from Email Button
 app.get('/api/tasks/:id/verify-direct', async (req, res) => {
   try {
@@ -913,11 +1024,27 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// 10. Email Logs (In-app Email Notification Center)
+// 10. Email Logs (In-app Email Notification Center with Strict Per-User Privacy)
 app.get('/api/emails', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit || '50');
-    const logs = await db.prepare('SELECT * FROM email_logs ORDER BY id DESC LIMIT ?').all(limit);
+    const { email, role, limit = '50' } = req.query;
+    let query = 'SELECT * FROM email_logs';
+    const params = [];
+
+    // Privacy isolation: If email is provided and not superadmin, only show emails for this recipient
+    if (email && email.trim() && role !== 'superadmin') {
+      const cleanEmail = email.trim().toLowerCase();
+      query += ' WHERE (LOWER(recipient_email) = ? OR LOWER(recipient_role) = ?)';
+      params.push(cleanEmail, (role || '').trim().toLowerCase());
+    } else if (role && role !== 'superadmin') {
+      query += ' WHERE LOWER(recipient_role) LIKE ?';
+      params.push(`%${role.trim().toLowerCase()}%`);
+    }
+
+    query += ' ORDER BY id DESC LIMIT ?';
+    params.push(parseInt(limit));
+
+    const logs = await db.prepare(query).all(...params);
     res.json({ success: true, data: logs });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

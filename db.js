@@ -140,6 +140,24 @@ async function initDb() {
     );
   `);
 
+  // Auto-migrate columns for YDP & SU ulasan if not present
+  const migrations = [
+    'ALTER TABLE tasks ADD COLUMN ydp_notes TEXT',
+    'ALTER TABLE tasks ADD COLUMN ydp_noted_at TEXT',
+    'ALTER TABLE tasks ADD COLUMN ydp_by INTEGER',
+    'ALTER TABLE tasks ADD COLUMN su_notes TEXT',
+    'ALTER TABLE tasks ADD COLUMN su_noted_at TEXT',
+    'ALTER TABLE tasks ADD COLUMN su_by INTEGER'
+  ];
+
+  for (const sql of migrations) {
+    try {
+      await client.execute(sql);
+    } catch (e) {
+      // Column already exists, ignore
+    }
+  }
+
   await seedMDJData();
 }
 
