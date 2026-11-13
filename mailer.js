@@ -43,11 +43,10 @@ async function sendNotificationEmail({ to, role, name, subject, htmlContent, tas
 
   // Always log into email_logs table for audit trail & in-app viewer
   try {
-    const stmt = db.prepare(`
-      INSERT INTO email_logs (recipient_email, recipient_role, recipient_name, subject, body_html, task_id, sent_at, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(to, role, name, subject, htmlContent, taskId, sentAt, status);
+    db.run(
+      'INSERT INTO email_logs (recipient_email, recipient_role, recipient_name, subject, body_html, task_id, sent_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [to, role, name, subject, htmlContent, taskId, sentAt, status]
+    ).catch(err => console.error('Error logging email to DB:', err));
   } catch (err) {
     console.error('Error logging email to DB:', err);
   }

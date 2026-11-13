@@ -19,9 +19,6 @@ const {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize Database
-initDb();
-
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -39,22 +36,8 @@ app.get('/', (req, res) => {
   res.status(404).send('Fail index.html tidak dijumpai.');
 });
 
-// Configure Multer for evidence photo uploads
-const uploadDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, 'bukti-' + uniqueSuffix + ext);
-  }
-});
+// Configure Multer for evidence photo uploads (Store in memory as Base64 to survive cloud restarts)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -131,14 +114,14 @@ function calculateSLA(task) {
 // ==========================================
 
 // 1. Get all users
-app.get('/api/users', (req, res) => {
+app.get('/api/users', async (req, res) => {
   try {
     const role = req.query.role;
     let users;
     if (role) {
-      users = db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE role = ? ORDER BY id ASC').all(role);
+      users = await db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE role = ? ORDER BY id ASC').all(role);
     } else {
-      users = db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users ORDER BY id ASC').all();
+      users = await db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users ORDER BY id ASC').all();
     }
     res.json({ success: true, data: users });
   } catch (err) {
@@ -147,14 +130,14 @@ app.get('/api/users', (req, res) => {
 });
 
 // 1b. Login Authentication
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email) {
       return res.status(400).json({ success: false, error: 'Sila masukkan emel anda.' });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
+    const user = await db.prepare('SELECT * FROM users WHERE email = ?').get(email.trim().toLowerCase());
     if (!user) {
       return res.status(401).json({ success: false, error: 'Akaun emel tidak dijumpai dalam sistem.' });
     }
@@ -183,7 +166,7 @@ app.post('/api/login', (req, res) => {
 });
 
 // 1b-2. Role-Based Login (Password Default 123456)
-app.post('/api/login-by-role', (req, res) => {
+app.post('/api/login-by-role', async (req, res) => {
   try {
     const { role, user_id, password } = req.body;
     if (!role) {
@@ -192,9 +175,9 @@ app.post('/api/login-by-role', (req, res) => {
 
     let user;
     if (user_id) {
-      user = db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
+      user = await db.prepare('SELECT * FROM users WHERE id = ?').get(user_id);
     } else {
-      user = db.prepare('SELECT * FROM users WHERE role = ? LIMIT 1').get(role);
+      user = await db.prepare('SELECT * FROM users WHERE role = ? LIMIT 1').get(role);
     }
 
     if (!user) {
@@ -226,12 +209,12 @@ app.post('/api/login-by-role', (req, res) => {
 });
 
 // 1b-3. User Profile Self-Service Update (Email, Phone, Password)
-app.put('/api/profile/:id', (req, res) => {
+app.put('/api/profile/:id', async (req, res) => {
   try {
     const userId = req.params.id;
     const { email, phone, password } = req.body;
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     if (!user) {
       return res.status(404).json({ success: false, error: 'Pengguna tidak dijumpai.' });
     }
@@ -241,7 +224,7 @@ app.put('/api/profile/:id', (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const collision = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(cleanEmail, userId);
+    const collision = await db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(cleanEmail, userId);
     if (collision) {
       return res.status(400).json({ success: false, error: 'Alamat emel ini telah digunakan oleh pengguna lain.' });
     }
@@ -257,9 +240,9 @@ app.put('/api/profile/:id', (req, res) => {
     updateSql += ` WHERE id = ?`;
     params.push(userId);
 
-    db.prepare(updateSql).run(...params);
+    await db.prepare(updateSql).run(...params);
 
-    const updated = db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE id = ?').get(userId);
+    const updated = await db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE id = ?').get(userId);
     res.json({
       success: true,
       message: 'Profil peribadi berjaya dikemas kini.',
@@ -271,14 +254,14 @@ app.put('/api/profile/:id', (req, res) => {
 });
 
 // 1c. Superadmin: Create New User / Officer
-app.post('/api/users', (req, res) => {
+app.post('/api/users', async (req, res) => {
   try {
     const { name, email, role, department, phone, password } = req.body;
     if (!name || !email || !role || !department) {
       return res.status(400).json({ success: false, error: 'Nama, emel, peranan, dan jabatan/bahagian wajib diisi.' });
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase());
+    const existing = await db.prepare('SELECT id FROM users WHERE email = ?').get(email.trim().toLowerCase());
     if (existing) {
       return res.status(400).json({ success: false, error: 'Emel ini telah digunakan oleh pengguna lain.' });
     }
@@ -288,7 +271,7 @@ app.post('/api/users', (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
-    const result = insertStmt.run(
+    const result = await insertStmt.run(
       name.trim(),
       email.trim().toLowerCase(),
       role,
@@ -298,7 +281,7 @@ app.post('/api/users', (req, res) => {
       password || '123456'
     );
 
-    const newUser = db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE id = ?').get(result.lastInsertRowid);
+    const newUser = await db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE id = ?').get(result.lastInsertRowid);
     res.json({ success: true, message: 'Pengguna / Pegawai berjaya ditambah.', data: newUser });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -306,12 +289,12 @@ app.post('/api/users', (req, res) => {
 });
 
 // 1d. Superadmin: Update User / Officer
-app.put('/api/users/:id', (req, res) => {
+app.put('/api/users/:id', async (req, res) => {
   try {
     const userId = req.params.id;
     const { name, email, role, department, phone, password } = req.body;
 
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     if (!user) {
       return res.status(404).json({ success: false, error: 'Pengguna tidak dijumpai.' });
     }
@@ -336,9 +319,9 @@ app.put('/api/users/:id', (req, res) => {
     updateQuery += ` WHERE id = ?`;
     params.push(userId);
 
-    db.prepare(updateQuery).run(...params);
+    await db.prepare(updateQuery).run(...params);
 
-    const updated = db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE id = ?').get(userId);
+    const updated = await db.prepare('SELECT id, name, email, role, department, phone, avatar FROM users WHERE id = ?').get(userId);
     res.json({ success: true, message: 'Maklumat pengguna / pegawai berjaya dikemas kini.', data: updated });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -346,10 +329,10 @@ app.put('/api/users/:id', (req, res) => {
 });
 
 // 1e. Superadmin: Delete User / Officer
-app.delete('/api/users/:id', (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
   try {
     const userId = req.params.id;
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    const user = await db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
     if (!user) {
       return res.status(404).json({ success: false, error: 'Pengguna tidak dijumpai.' });
     }
@@ -359,15 +342,16 @@ app.delete('/api/users/:id', (req, res) => {
     }
 
     // Check if user has assigned tasks
-    const hasTasks = db.prepare('SELECT COUNT(*) as c FROM tasks WHERE assigned_to = ? OR assigned_by = ?').get(userId, userId);
-    if (hasTasks.count > 0) {
+    const hasTasks = await db.prepare('SELECT COUNT(*) as c FROM tasks WHERE assigned_to = ? OR assigned_by = ?').get(userId, userId);
+    const count = hasTasks ? (hasTasks.c !== undefined ? hasTasks.c : (hasTasks.count || 0)) : 0;
+    if (count > 0) {
       return res.status(400).json({
         success: false,
-        error: `Pengguna ini tidak boleh dipadam kerana mempunyai ${hasTasks.count} rekod tugasan berkaitan. Anda boleh mengemas kini nama atau peranannya.`
+        error: `Pengguna ini tidak boleh dipadam kerana mempunyai ${count} rekod tugasan berkaitan. Anda boleh mengemas kini nama atau peranannya.`
       });
     }
 
-    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+    await db.prepare('DELETE FROM users WHERE id = ?').run(userId);
     res.json({ success: true, message: 'Pengguna berjaya dipadam daripada sistem.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -377,29 +361,29 @@ app.delete('/api/users/:id', (req, res) => {
 // ==========================================
 // 1f. Jabatan & Bahagian Management (MDJ)
 // ==========================================
-app.get('/api/departments', (req, res) => {
+app.get('/api/departments', async (req, res) => {
   try {
-    const departments = db.prepare('SELECT * FROM departments ORDER BY name ASC').all();
+    const departments = await db.prepare('SELECT * FROM departments ORDER BY name ASC').all();
     res.json({ success: true, data: departments });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.post('/api/departments', (req, res) => {
+app.post('/api/departments', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Sila masukkan nama jabatan/bahagian.' });
     }
     const cleanName = name.trim();
-    const existing = db.prepare('SELECT id FROM departments WHERE name = ? COLLATE NOCASE').get(cleanName);
+    const existing = await db.prepare('SELECT id FROM departments WHERE name = ? COLLATE NOCASE').get(cleanName);
     if (existing) {
       return res.status(400).json({ success: false, error: 'Jabatan/bahagian ini telah wujud.' });
     }
 
     const stmt = db.prepare('INSERT INTO departments (name, created_at) VALUES (?, ?)');
-    const result = stmt.run(cleanName, getFormattedNow());
+    const result = await stmt.run(cleanName, getFormattedNow());
     res.json({
       success: true,
       message: 'Jabatan/bahagian berjaya ditambah.',
@@ -410,7 +394,7 @@ app.post('/api/departments', (req, res) => {
   }
 });
 
-app.put('/api/departments/:id', (req, res) => {
+app.put('/api/departments/:id', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name || !name.trim()) {
@@ -418,14 +402,14 @@ app.put('/api/departments/:id', (req, res) => {
     }
     const deptId = req.params.id;
     const cleanName = name.trim();
-    const oldDept = db.prepare('SELECT * FROM departments WHERE id = ?').get(deptId);
+    const oldDept = await db.prepare('SELECT * FROM departments WHERE id = ?').get(deptId);
     if (!oldDept) {
       return res.status(404).json({ success: false, error: 'Jabatan tidak dijumpai.' });
     }
 
-    db.prepare('UPDATE departments SET name = ? WHERE id = ?').run(cleanName, deptId);
+    await db.prepare('UPDATE departments SET name = ? WHERE id = ?').run(cleanName, deptId);
     // Kemas kini nama jabatan bagi semua pengguna yang terikat
-    db.prepare('UPDATE users SET department = ? WHERE department = ?').run(cleanName, oldDept.name);
+    await db.prepare('UPDATE users SET department = ? WHERE department = ?').run(cleanName, oldDept.name);
 
     res.json({ success: true, message: 'Nama jabatan berjaya dikemas kini.' });
   } catch (err) {
@@ -433,23 +417,24 @@ app.put('/api/departments/:id', (req, res) => {
   }
 });
 
-app.delete('/api/departments/:id', (req, res) => {
+app.delete('/api/departments/:id', async (req, res) => {
   try {
     const deptId = req.params.id;
-    const dept = db.prepare('SELECT * FROM departments WHERE id = ?').get(deptId);
+    const dept = await db.prepare('SELECT * FROM departments WHERE id = ?').get(deptId);
     if (!dept) {
       return res.status(404).json({ success: false, error: 'Jabatan tidak dijumpai.' });
     }
 
-    const userCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE department = ?').get(dept.name);
-    if (userCount.c > 0) {
+    const userCount = await db.prepare('SELECT COUNT(*) as c FROM users WHERE department = ?').get(dept.name);
+    const count = userCount ? (userCount.c !== undefined ? userCount.c : (userCount.count || 0)) : 0;
+    if (count > 0) {
       return res.status(400).json({
         success: false,
-        error: `Jabatan "${dept.name}" tidak boleh dipadam kerana terdapat ${userCount.c} pegawai berdaftar di bawahnya. Sila tukar jabatan pegawai berkenaan terlebih dahulu.`
+        error: `Jabatan "${dept.name}" tidak boleh dipadam kerana terdapat ${count} pegawai berdaftar di bawahnya. Sila tukar jabatan pegawai berkenaan terlebih dahulu.`
       });
     }
 
-    db.prepare('DELETE FROM departments WHERE id = ?').run(deptId);
+    await db.prepare('DELETE FROM departments WHERE id = ?').run(deptId);
     res.json({ success: true, message: 'Jabatan berjaya dipadam.' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -457,7 +442,7 @@ app.delete('/api/departments/:id', (req, res) => {
 });
 
 // 2. Get list of tasks (with SLA info & filters)
-app.get('/api/tasks', (req, res) => {
+app.get('/api/tasks', async (req, res) => {
   try {
     const { role, user_id, status_filter, department } = req.query;
 
@@ -484,7 +469,7 @@ app.get('/api/tasks', (req, res) => {
       params.push(user_id);
     } else if (role === 'ketua_bahagian' && user_id) {
       // Ketua Bahagian hanya nampak tugasan di bawah jabatannya sendiri
-      const kbUser = db.prepare('SELECT department FROM users WHERE id = ?').get(user_id);
+      const kbUser = await db.prepare('SELECT department FROM users WHERE id = ?').get(user_id);
       if (kbUser && kbUser.department) {
         query += ' AND (t.assigned_by = ? OR u_to.department = ?)';
         params.push(user_id, kbUser.department);
@@ -503,7 +488,7 @@ app.get('/api/tasks', (req, res) => {
 
     query += ' ORDER BY t.id DESC';
 
-    const tasks = db.prepare(query).all(...params);
+    const tasks = await db.prepare(query).all(...params);
 
     // Attach SLA calculation and parse images JSON
     const enrichedTasks = tasks.map(task => {
@@ -541,9 +526,9 @@ app.get('/api/tasks', (req, res) => {
 });
 
 // 3. Get single task detail
-app.get('/api/tasks/:id', (req, res) => {
+app.get('/api/tasks/:id', async (req, res) => {
   try {
-    const task = db.prepare(`
+    const task = await db.prepare(`
       SELECT 
         t.*,
         u_to.name AS assigned_to_name,
@@ -588,8 +573,9 @@ app.post('/api/tasks', async (req, res) => {
     }
 
     // Generate unique Task Number & Token
-    const countRow = db.prepare('SELECT COUNT(*) as count FROM tasks').get();
-    const taskNo = `TSK-${new Date().getFullYear()}-${String(countRow.count + 1).padStart(3, '0')}`;
+    const countRow = await db.prepare('SELECT COUNT(*) as count FROM tasks').get();
+    const taskCount = countRow ? (countRow.count !== undefined ? countRow.count : (countRow.c || 0)) : 0;
+    const taskNo = `TSK-${new Date().getFullYear()}-${String(Number(taskCount) + 1).padStart(3, '0')}`;
     const verificationToken = crypto.randomBytes(24).toString('hex');
     const createdAt = getFormattedNow();
 
@@ -600,18 +586,18 @@ app.post('/api/tasks', async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'baru', ?)
     `);
 
-    const result = insertStmt.run(
+    const result = await insertStmt.run(
       taskNo, title, description, location, venue, assigned_to, assigned_by,
       deadline, createdAt, verificationToken
     );
 
     const taskId = result.lastInsertRowid;
-    const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const newTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
 
     // Fetch Officer, KB, and YDP info for notifications
-    const officer = db.prepare('SELECT * FROM users WHERE id = ?').get(assigned_to);
-    const kb = db.prepare('SELECT * FROM users WHERE id = ?').get(assigned_by);
-    const ydp = db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
+    const officer = await db.prepare('SELECT * FROM users WHERE id = ?').get(assigned_to);
+    const kb = await db.prepare('SELECT * FROM users WHERE id = ?').get(assigned_by);
+    const ydp = await db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
 
     // 1. Send Email to Pegawai
     if (officer) {
@@ -639,7 +625,7 @@ app.post('/api/tasks/:id/submit', upload.array('photos', 5), async (req, res) =>
     const taskId = req.params.id;
     const { report_text } = req.body;
 
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
     if (!task) {
       return res.status(404).json({ success: false, error: 'Tugasan tidak dijumpai' });
     }
@@ -648,12 +634,16 @@ app.post('/api/tasks/:id/submit', upload.array('photos', 5), async (req, res) =>
       return res.status(400).json({ success: false, error: 'Tugasan ini telah disahkan sebelum ini.' });
     }
 
-    // Process uploaded photo paths
+    // Process uploaded photos into Base64 (Stored safely in cloud database)
     let uploadedFiles = [];
     if (req.files && req.files.length > 0) {
-      uploadedFiles = req.files.map(f => '/uploads/' + f.filename);
+      uploadedFiles = req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`);
     } else if (task.report_images) {
-      uploadedFiles = JSON.parse(task.report_images);
+      try {
+        uploadedFiles = JSON.parse(task.report_images);
+      } catch (e) {
+        uploadedFiles = [];
+      }
     }
 
     if (uploadedFiles.length === 0) {
@@ -676,12 +666,12 @@ app.post('/api/tasks/:id/submit', upload.array('photos', 5), async (req, res) =>
       WHERE id = ?
     `);
 
-    updateStmt.run(submittedAt, report_text.trim(), JSON.stringify(uploadedFiles), taskId);
+    await updateStmt.run(submittedAt, report_text.trim(), JSON.stringify(uploadedFiles), taskId);
 
-    const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
-    const officer = db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_to);
-    const kb = db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_by);
-    const ydp = db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
+    const updatedTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const officer = await db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_to);
+    const kb = await db.prepare('SELECT * FROM users WHERE id = ?').get(updatedTask.assigned_by);
+    const ydp = await db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
 
     // 1. Send Email to Ketua Bahagian (contains Review link & Direct Verify button)
     if (kb) {
@@ -709,7 +699,7 @@ app.post('/api/tasks/:id/verify', async (req, res) => {
     const taskId = req.params.id;
     const { verified_by, verification_notes } = req.body;
 
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
     if (!task) {
       return res.status(404).json({ success: false, error: 'Tugasan tidak dijumpai' });
     }
@@ -725,12 +715,12 @@ app.post('/api/tasks/:id/verify', async (req, res) => {
       WHERE id = ?
     `);
 
-    updateStmt.run(verifiedAt, verified_by || task.assigned_by, verification_notes || 'Disahkan lengkap dan teratur.', taskId);
+    await updateStmt.run(verifiedAt, verified_by || task.assigned_by, verification_notes || 'Disahkan lengkap dan teratur.', taskId);
 
-    const verifiedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
-    const officer = db.prepare('SELECT * FROM users WHERE id = ?').get(verifiedTask.assigned_to);
-    const kb = db.prepare('SELECT * FROM users WHERE id = ?').get(verified_by || verifiedTask.assigned_by);
-    const ydp = db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
+    const verifiedTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const officer = await db.prepare('SELECT * FROM users WHERE id = ?').get(verifiedTask.assigned_to);
+    const kb = await db.prepare('SELECT * FROM users WHERE id = ?').get(verified_by || verifiedTask.assigned_by);
+    const ydp = await db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
 
     // 1. Send Confirmation Email to YDP (With actual verification date & time)
     if (ydp) {
@@ -758,7 +748,7 @@ app.get('/api/tasks/:id/verify-direct', async (req, res) => {
     const taskId = req.params.id;
     const token = req.query.token;
 
-    const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const task = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
     if (!task) {
       return res.send(`<h2>Ralat: Tugasan tidak wujud.</h2>`);
     }
@@ -778,7 +768,7 @@ app.get('/api/tasks/:id/verify-direct', async (req, res) => {
     }
 
     const verifiedAt = getFormattedNow();
-    db.prepare(`
+    await db.prepare(`
       UPDATE tasks
       SET status = 'disahkan',
           verified_at = ?,
@@ -787,10 +777,10 @@ app.get('/api/tasks/:id/verify-direct', async (req, res) => {
       WHERE id = ?
     `).run(verifiedAt, taskId);
 
-    const verifiedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
-    const officer = db.prepare('SELECT * FROM users WHERE id = ?').get(verifiedTask.assigned_to);
-    const kb = db.prepare('SELECT * FROM users WHERE id = ?').get(verifiedTask.assigned_by);
-    const ydp = db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
+    const verifiedTask = await db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+    const officer = await db.prepare('SELECT * FROM users WHERE id = ?').get(verifiedTask.assigned_to);
+    const kb = await db.prepare('SELECT * FROM users WHERE id = ?').get(verifiedTask.assigned_by);
+    const ydp = await db.prepare("SELECT * FROM users WHERE role = 'ydp' LIMIT 1").get();
 
     // Send notifications to YDP & Pegawai
     if (ydp) notifyTaskVerifiedToYDP(verifiedTask, officer, kb, ydp).catch(e => console.error(e));
@@ -820,7 +810,7 @@ app.get('/api/tasks/:id/verify-direct', async (req, res) => {
           <div class="box">
             <div><strong>No. Rujukan:</strong> ${verifiedTask.task_no}</div>
             <div><strong>Tajuk:</strong> ${verifiedTask.title}</div>
-            <div><strong>Pegawai:</strong> ${officer.name}</div>
+            <div><strong>Pegawai:</strong> ${officer ? officer.name : '-'}</div>
             <div style="margin-top: 8px; color: #16a34a; font-weight: bold;">
               <strong>Tarikh &amp; Masa Sebenar Disahkan:</strong><br>${verifiedAt}
             </div>
@@ -837,10 +827,10 @@ app.get('/api/tasks/:id/verify-direct', async (req, res) => {
 });
 
 // 8. Automated Check: Remind Officers for tasks due today (Kotak Oren)
-app.post('/api/cron/check-due-today', (req, res) => {
+app.post('/api/cron/check-due-today', async (req, res) => {
   try {
     const today = getTodayString();
-    const tasksDueToday = db.prepare(`
+    const tasksDueToday = await db.prepare(`
       SELECT t.*, u.name as officer_name, u.email as officer_email 
       FROM tasks t
       JOIN users u ON t.assigned_to = u.id
@@ -865,9 +855,9 @@ app.post('/api/cron/check-due-today', (req, res) => {
 });
 
 // 9. Executive Stats (for YDP Dashboard)
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', async (req, res) => {
   try {
-    const allTasks = db.prepare(`
+    const allTasks = await db.prepare(`
       SELECT t.*, u_to.department, u_to.name as officer_name
       FROM tasks t
       LEFT JOIN users u_to ON t.assigned_to = u_to.id
@@ -924,10 +914,10 @@ app.get('/api/stats', (req, res) => {
 });
 
 // 10. Email Logs (In-app Email Notification Center)
-app.get('/api/emails', (req, res) => {
+app.get('/api/emails', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit || '50');
-    const logs = db.prepare('SELECT * FROM email_logs ORDER BY id DESC LIMIT ?').all(limit);
+    const logs = await db.prepare('SELECT * FROM email_logs ORDER BY id DESC LIMIT ?').all(limit);
     res.json({ success: true, data: logs });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -935,10 +925,10 @@ app.get('/api/emails', (req, res) => {
 });
 
 // Run Kotak Oren daily check on server startup & every 30 minutes
-setInterval(() => {
+setInterval(async () => {
   try {
     const today = getTodayString();
-    const tasksDueToday = db.prepare(`
+    const tasksDueToday = await db.prepare(`
       SELECT t.*, u.name as officer_name, u.email as officer_email 
       FROM tasks t
       JOIN users u ON t.assigned_to = u.id
@@ -947,12 +937,13 @@ setInterval(() => {
 
     for (const t of tasksDueToday) {
       // Check if already sent in last 24h to avoid duplicate spam
-      const alreadySent = db.prepare(`
+      const alreadySent = await db.prepare(`
         SELECT COUNT(*) as count FROM email_logs 
         WHERE task_id = ? AND subject LIKE '%[PERINGATAN SEGERA]%' AND sent_at LIKE ?
       `).get(t.id, `${today}%`);
 
-      if (alreadySent.count === 0) {
+      const sentCount = alreadySent ? (alreadySent.count !== undefined ? alreadySent.count : (alreadySent.c || 0)) : 0;
+      if (sentCount === 0) {
         const officer = { name: t.officer_name, email: t.officer_email, id: t.assigned_to };
         notifyOfficerDueToday(t, officer).catch(e => console.error(e));
       }
@@ -962,11 +953,15 @@ setInterval(() => {
   }
 }, 30 * 60 * 1000);
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`  SISTEM PEMANTAUAN KERJA BERSEPADU`);
-  console.log(`  Pelayan aktif di: http://localhost:${PORT}`);
-  console.log(`  Pangkalan Data: SQLite (Aktif & Bersedia)`);
-  console.log(`=======================================================`);
+// Initialize Database & Start Server
+initDb().then(() => {
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`  SISTEM PEMANTAUAN KERJA BERSEPADU (MDJ)`);
+    console.log(`  Pelayan aktif di: http://localhost:${PORT}`);
+    console.log(`  Pangkalan Data: Turso Cloud SQLite (Kekal & Selamat)`);
+    console.log(`=======================================================`);
+  });
+}).catch(err => {
+  console.error('Ralat menyambung ke pangkalan data Turso:', err);
 });
